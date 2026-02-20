@@ -38,15 +38,13 @@
 
         .background-video {
             position: absolute;
-            /* NEW: Pushes the video down by 85px to create the doubled top bar */
             top: 85px; 
             left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
             z-index: 0;
-            transition: transform 0.2s ease-out;
-            /* NEW: Anchors the video to the top so zooming doesn't break the bar */
+            /* Removed transition so pinch-to-zoom perfectly tracks the fingers instantly */
             transform-origin: top center; 
         }
 
@@ -102,11 +100,6 @@
             <button id="btn-size-up" class="px-2 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 active:bg-gray-600 font-bold text-sm transition-colors">A+</button>
         </div>
         <div class="w-px h-5 bg-gray-600"></div>
-        <div class="flex space-x-1">
-            <button id="btn-vid-down" class="px-2 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 active:bg-gray-600 font-bold text-sm text-green-400 transition-colors">V-</button>
-            <button id="btn-vid-up" class="px-2 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 active:bg-gray-600 font-bold text-sm text-green-400 transition-colors">V+</button>
-        </div>
-        <div class="w-px h-5 bg-gray-600"></div>
         <button id="btn-mode-move" class="px-2 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 active:bg-gray-600 text-xs font-semibold flex items-center space-x-1 transition-colors">
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 21v-2a4 4 0 014-4h4a4 4 0 014 4v2M16 3.13a4 4 0 010 7.75"></path></svg>
             <span>Move</span>
@@ -149,16 +142,7 @@
 </div>
 
 <script>
-    document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
-    document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
-    document.addEventListener('gestureend', function(e) { e.preventDefault(); });
-    
-    document.addEventListener('touchstart', function(e) {
-        if (e.touches.length > 1) {
-            e.preventDefault();
-        }
-    }, { passive: false });
-
+    // System Variables
     let activeElement = null;
     let isMoveMode = false;
     let isDragging = false;
@@ -169,28 +153,92 @@
     let tapCount = 0;
     let tapTimer;
 
+    // --- NEW: Custom Pinch-to-Zoom Variables ---
     let currentVideoScale = 1.0;
-
+    let initialPinchDistance = null;
+    let baseVideoScale = 1.0;
     const bgVideo = document.getElementById('bg-video');
+
+    // Helper function to calculate distance between two fingers
+    function getPinchDistance(touches) {
+        return Math.hypot(
+            touches[0].clientX - touches[1].clientX,
+            touches[0].clientY - touches[1].clientY
+        );
+    }
+
+    // Prevents native Apple iOS zoom gestures entirely
+    document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+    document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
+    document.addEventListener('gestureend', function(e) { e.preventDefault(); });
+
+    // Custom Touch Start (Handles both Dragging and Pinch Zooming)
+    document.addEventListener('touchstart', function(e) {
+        if (e.touches.length >= 2) {
+            e.preventDefault(); 
+            initialPinchDistance = getPinchDistance(e.touches);
+            baseVideoScale = currentVideoScale;
+        } else {
+            // Single touch for dragging text
+            if (!isMoveMode || !activeElement || e.target !== activeElement) return;
+            initialX = e.touches[0].clientX - xOffset;
+            initialY = e.touches[0].clientY - yOffset;
+            isDragging = true;
+        }
+    }, { passive: false });
+
+    // Custom Touch Move 
+    document.addEventListener('touchmove', function(e) {
+        if (e.touches.length >= 2 && initialPinchDistance) {
+            e.preventDefault(); 
+            const currentDistance = getPinchDistance(e.touches);
+            // Calculate how far fingers have spread/pinched and apply to the video
+            currentVideoScale = baseVideoScale * (currentDistance / initialPinchDistance);
+            bgVideo.style.transform = `scale(${currentVideoScale})`;
+        } else if (isDragging && isMoveMode && activeElement && e.touches.length === 1) {
+            e.preventDefault(); 
+            currentX = e.touches[0].clientX - initialX;
+            currentY = e.touches[0].clientY - initialY;
+            xOffset = currentX;
+            yOffset = currentY;
+            activeElement.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+        }
+    }, { passive: false });
+
+    // Custom Touch End
+    document.addEventListener('touchend', function(e) {
+        if (e.touches.length < 2) {
+            initialPinchDistance = null;
+        }
+        if (isDragging) {
+            initialX = currentX;
+            initialY = currentY;
+            isDragging = false;
+            if (activeElement) {
+                activeElement.setAttribute('data-x', currentX);
+                activeElement.setAttribute('data-y', currentY);
+            }
+        }
+    });
+    // -------------------------------------------
+
     const toolbar = document.getElementById('editor-toolbar');
     const btnSizeUp = document.getElementById('btn-size-up');
     const btnSizeDown = document.getElementById('btn-size-down');
-    const btnVidUp = document.getElementById('btn-vid-up');
-    const btnVidDown = document.getElementById('btn-vid-down');
     const btnModeMove = document.getElementById('btn-mode-move');
     const btnDone = document.getElementById('btn-done');
     const editableElements = document.querySelectorAll('.editable');
 
+    // Triple Tap Logic
     editableElements.forEach(el => {
         el.addEventListener('pointerdown', function(e) {
-            tapCount++;
+            // Ignore if pinching
+            if (e.touches && e.touches.length > 1) return;
             
+            tapCount++;
             if (tapCount === 1) {
-                tapTimer = setTimeout(() => {
-                    tapCount = 0; 
-                }, 500); 
+                tapTimer = setTimeout(() => { tapCount = 0; }, 500); 
             }
-
             if (tapCount === 3) {
                 clearTimeout(tapTimer);
                 tapCount = 0;
@@ -280,63 +328,34 @@
         activeElement.style.fontSize = (currentSize - 1) + 'px';
     });
 
-    btnVidUp.addEventListener('click', () => {
-        currentVideoScale += 0.05; 
-        bgVideo.style.transform = `scale(${currentVideoScale})`;
-    });
-
-    btnVidDown.addEventListener('click', () => {
-        currentVideoScale = Math.max(1.0, currentVideoScale - 0.05); 
-        bgVideo.style.transform = `scale(${currentVideoScale})`;
-    });
-
-    function dragStart(e) {
+    // Desktop Mouse Dragging Fallbacks
+    document.addEventListener('mousedown', function(e) {
         if (!isMoveMode || !activeElement || e.target !== activeElement) return;
-        
-        if (e.type === "touchstart") {
-            initialX = e.touches[0].clientX - xOffset;
-            initialY = e.touches[0].clientY - yOffset;
-        } else {
-            initialX = e.clientX - xOffset;
-            initialY = e.clientY - yOffset;
-        }
+        initialX = e.clientX - xOffset;
+        initialY = e.clientY - yOffset;
         isDragging = true;
-    }
+    });
 
-    function drag(e) {
+    document.addEventListener('mousemove', function(e) {
         if (!isDragging || !isMoveMode || !activeElement) return;
-        e.preventDefault(); 
-
-        if (e.type === "touchmove") {
-            currentX = e.touches[0].clientX - initialX;
-            currentY = e.touches[0].clientY - initialY;
-        } else {
-            currentX = e.clientX - initialX;
-            currentY = e.clientY - initialY;
-        }
-
+        e.preventDefault();
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
         xOffset = currentX;
         yOffset = currentY;
         activeElement.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
-    }
+    });
 
-    function dragEnd() {
+    document.addEventListener('mouseup', function() {
         if(!isDragging) return;
         initialX = currentX;
         initialY = currentY;
         isDragging = false;
-        
-        activeElement.setAttribute('data-x', currentX);
-        activeElement.setAttribute('data-y', currentY);
-    }
-
-    document.addEventListener('touchstart', dragStart, {passive: false});
-    document.addEventListener('touchmove', drag, {passive: false});
-    document.addEventListener('touchend', dragEnd);
-    
-    document.addEventListener('mousedown', dragStart);
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('mouseup', dragEnd);
+        if (activeElement) {
+            activeElement.setAttribute('data-x', currentX);
+            activeElement.setAttribute('data-y', currentY);
+        }
+    });
 
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && activeElement && !isMoveMode) {
