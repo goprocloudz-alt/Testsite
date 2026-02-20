@@ -2,12 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Advanced Editable Ticket</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            /* iOS System Fonts */
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #000;
             display: flex;
@@ -17,6 +16,9 @@
             margin: 0;
             -webkit-font-smoothing: antialiased;
             overflow: hidden;
+            /* Prevents text highlighting while tapping rapidly */
+            -webkit-user-select: none;
+            user-select: none; 
         }
 
         .app-container {
@@ -30,7 +32,6 @@
             background: #000;
         }
 
-        /* The clean video looping in the background */
         .background-video {
             position: absolute;
             top: 0;
@@ -41,7 +42,6 @@
             z-index: 0;
         }
 
-        /* Container for our new editable text */
         .overlay-content {
             position: absolute;
             top: 0;
@@ -51,20 +51,21 @@
             z-index: 2;
             display: flex;
             flex-direction: column;
-            pointer-events: none; /* Allows scrolling and clicking on the video if needed */
+            pointer-events: none; 
         }
 
-        /* Base Editable states */
         .editable {
-            pointer-events: auto; /* Re-enables clicking only for the text elements */
+            pointer-events: auto; 
             transition: background 0.2s, border-radius 0.2s;
             cursor: pointer;
             color: white;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.3); /* Slight shadow to ensure readability */
-            display: inline-block; /* Required for clean dragging and resizing */
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3); 
+            display: inline-block; 
+            /* Re-enable text selection ONLY for the editable text */
+            -webkit-user-select: text;
+            user-select: text;
         }
         
-        /* Active State (When triple clicked and toolbar is open) */
         .editable.is-active {
             background: rgba(255, 255, 255, 0.15);
             border-radius: 4px;
@@ -73,11 +74,11 @@
             outline: 2px dashed rgba(255,255,255,0.5);
         }
 
-        /* Move State */
         .editable.is-moving {
             cursor: move !important;
-            outline: 2px solid #3b82f6 !important; /* Blue outline to show dragging mode */
+            outline: 2px solid #3b82f6 !important; 
             background: rgba(59, 130, 246, 0.2);
+            -webkit-user-select: none;
             user-select: none;
         }
     </style>
@@ -152,6 +153,10 @@
     let initialX = 0, initialY = 0;
     let xOffset = 0, yOffset = 0;
 
+    // Mobile Custom Tap Counter
+    let tapCount = 0;
+    let tapTimer;
+
     // UI Elements
     const toolbar = document.getElementById('editor-toolbar');
     const btnSizeUp = document.getElementById('btn-size-up');
@@ -160,10 +165,23 @@
     const btnDone = document.getElementById('btn-done');
     const editableElements = document.querySelectorAll('.editable');
 
-    // 1. Triple Click Logic
+    // 1. Mobile-Friendly Triple Tap Logic
     editableElements.forEach(el => {
-        el.addEventListener('click', function(e) {
-            if (e.detail === 3) {
+        el.addEventListener('pointerdown', function(e) {
+            tapCount++;
+            
+            // Start the timer on the first tap
+            if (tapCount === 1) {
+                tapTimer = setTimeout(() => {
+                    tapCount = 0; // Reset if they don't tap fast enough
+                }, 500); // 500ms window to tap 3 times
+            }
+
+            // If tapped 3 times quickly, trigger the editor!
+            if (tapCount === 3) {
+                clearTimeout(tapTimer);
+                tapCount = 0;
+                e.preventDefault(); // Stop any other mobile behavior
                 activateEditor(this);
             }
         });
@@ -171,19 +189,14 @@
 
     // 2. Open Editor Function
     function activateEditor(element) {
-        // If another element is open, close it first
-        if (activeElement && activeElement !== element) {
-            closeEditor();
-        }
+        if (activeElement && activeElement !== element) closeEditor();
 
         activeElement = element;
         toolbar.classList.remove('hidden');
         
-        // Read existing positioning offsets so it doesn't snap back to zero
         xOffset = parseFloat(activeElement.getAttribute('data-x')) || 0;
         yOffset = parseFloat(activeElement.getAttribute('data-y')) || 0;
 
-        // Default to typing mode
         setTypingMode();
     }
 
@@ -191,7 +204,6 @@
     function closeEditor() {
         if (!activeElement) return;
         
-        // Clean up text (removes accidental HTML line breaks pasted in)
         if(activeElement.getAttribute('contenteditable') === 'true') {
             activeElement.innerHTML = activeElement.innerText;
         }
@@ -206,7 +218,7 @@
         btnModeMove.classList.add('bg-gray-800');
     }
 
-    // 4. Mode Toggles (Typing vs Dragging)
+    // 4. Mode Toggles 
     function setTypingMode() {
         if (!activeElement) return;
         isMoveMode = false;
@@ -216,7 +228,6 @@
         activeElement.setAttribute('contenteditable', 'true');
         activeElement.focus();
         
-        // Highlight text automatically
         const selection = window.getSelection();
         const range = document.createRange();
         range.selectNodeContents(activeElement);
@@ -235,22 +246,17 @@
         activeElement.classList.remove('is-active');
         activeElement.classList.add('is-moving');
         
-        // Clear text highlight
         window.getSelection().removeAllRanges();
 
         btnModeMove.classList.add('bg-blue-600');
         btnModeMove.classList.remove('bg-gray-800');
     }
 
-    // 5. Toolbar Button Listeners
+    // 5. Toolbar Listeners
     btnDone.addEventListener('click', closeEditor);
 
     btnModeMove.addEventListener('click', () => {
-        if (isMoveMode) {
-            setTypingMode(); // Toggle back to typing
-        } else {
-            setMoveMode();   // Switch to moving
-        }
+        isMoveMode ? setTypingMode() : setMoveMode();
     });
 
     btnSizeUp.addEventListener('click', () => {
@@ -265,7 +271,7 @@
         activeElement.style.fontSize = (currentSize - 1) + 'px';
     });
 
-    // 6. Drag and Drop Repositioning Logic
+    // 6. Mobile/Desktop Dragging Logic
     function dragStart(e) {
         if (!isMoveMode || !activeElement || e.target !== activeElement) return;
         
@@ -281,7 +287,7 @@
 
     function drag(e) {
         if (!isDragging || !isMoveMode || !activeElement) return;
-        e.preventDefault(); // Prevents page scrolling on mobile while dragging
+        e.preventDefault(); 
 
         if (e.type === "touchmove") {
             currentX = e.touches[0].clientX - initialX;
@@ -293,8 +299,7 @@
 
         xOffset = currentX;
         yOffset = currentY;
-
-        setTranslate(currentX, currentY, activeElement);
+        activeElement.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
     }
 
     function dragEnd() {
@@ -303,16 +308,10 @@
         initialY = currentY;
         isDragging = false;
         
-        // Save the coordinates to the element so it remembers where it is
         activeElement.setAttribute('data-x', currentX);
         activeElement.setAttribute('data-y', currentY);
     }
 
-    function setTranslate(xPos, yPos, el) {
-        el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
-    }
-
-    // Attach drag events to the whole document to prevent cursor-slip issues
     document.addEventListener('touchstart', dragStart, {passive: false});
     document.addEventListener('touchmove', drag, {passive: false});
     document.addEventListener('touchend', dragEnd);
@@ -321,7 +320,6 @@
     document.addEventListener('mousemove', drag);
     document.addEventListener('mouseup', dragEnd);
 
-    // Enter key to save while typing
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && activeElement && !isMoveMode) {
             e.preventDefault(); 
