@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Editable Ticket</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            /* iOS System Fonts */
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 390px;
+            height: 100vh;
+            max-height: 844px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            background: #000;
+        }
+
+        /* The clean video looping in the background */
+        .background-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+        }
+
+        /* Container for our new editable text */
+        .overlay-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            pointer-events: none; /* Allows scrolling and clicking on the video if needed */
+        }
+
+        /* Base Editable states */
+        .editable {
+            pointer-events: auto; /* Re-enables clicking only for the text elements */
+            transition: background 0.2s, border-radius 0.2s;
+            cursor: pointer;
+            color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3); /* Slight shadow to ensure readability */
+            display: inline-block; /* Required for clean dragging and resizing */
+        }
+        
+        /* Active State (When triple clicked and toolbar is open) */
+        .editable.is-active {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            padding: 2px 4px;
+            margin: -2px -4px;
+            outline: 2px dashed rgba(255,255,255,0.5);
+        }
+
+        /* Move State */
+        .editable.is-moving {
+            cursor: move !important;
+            outline: 2px solid #3b82f6 !important; /* Blue outline to show dragging mode */
+            background: rgba(59, 130, 246, 0.2);
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <video class="background-video" src="new.mov" autoplay loop muted playsinline></video>
+
+    <div id="editor-toolbar" class="hidden absolute top-12 left-1/2 transform -translate-x-1/2 bg-[rgba(30,30,30,0.95)] backdrop-blur-xl text-white px-3 py-2 rounded-xl flex items-center space-x-3 z-50 border border-gray-700 shadow-2xl pointer-events-auto w-max">
+        
+        <button id="btn-size-down" class="px-3 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 active:bg-gray-600 font-bold flex items-center justify-center transition-colors">
+            A-
+        </button>
+        <button id="btn-size-up" class="px-3 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 active:bg-gray-600 font-bold flex items-center justify-center transition-colors">
+            A+
+        </button>
+        
+        <div class="w-px h-6 bg-gray-600"></div>
+        
+        <button id="btn-mode-move" class="px-3 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 active:bg-gray-600 text-sm font-semibold flex items-center space-x-1 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 21v-2a4 4 0 014-4h4a4 4 0 014 4v2M16 3.13a4 4 0 010 7.75"></path></svg>
+            <span>Move</span>
+        </button>
+        
+        <div class="w-px h-6 bg-gray-600"></div>
+        
+        <button id="btn-done" class="px-4 py-1.5 bg-blue-600 rounded-lg hover:bg-blue-500 active:bg-blue-400 text-sm font-bold transition-colors">
+            Done
+        </button>
+    </div>
+
+    <div class="overlay-content">
+        <div class="flex items-center pt-[55px] pb-[10px] px-4 relative">
+            <svg class="w-5 h-5 absolute left-4 text-white opacity-90 pointer-events-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 19l-7-7 7-7"/>
+            </svg>
+            <div class="flex-1 text-center font-semibold text-[rgba(255,255,255,0.95)] tracking-wide flex justify-center">
+                <span class="editable text-[13px]">Sat, Nov 8, 12pm - Madison Square Garden</span>
+            </div>
+        </div>
+
+        <div class="text-center mt-[45px] mb-[30px]">
+            <span class="text-[22px] font-bold tracking-wide editable">Adult</span>
+        </div>
+
+        <div class="flex justify-center items-end space-x-[50px] px-6">
+            <div class="flex flex-col items-center">
+                <span class="text-[13px] text-[#e0dce6] mb-[2px] font-medium"><span class="editable">Section</span></span>
+                <span class="text-[28px] font-bold tracking-tight"><span class="editable">GA2</span></span>
+            </div>
+            <div class="flex flex-col items-center">
+                <span class="text-[13px] text-[#e0dce6] mb-[2px] font-medium"><span class="editable">Row</span></span>
+                <span class="text-[28px] font-bold tracking-tight"><span class="editable">GA6</span></span>
+            </div>
+            <div class="flex flex-col items-center">
+                <span class="text-[13px] text-[#e0dce6] mb-[2px] font-medium"><span class="editable">Seat</span></span>
+                <span class="text-[28px] font-bold tracking-tight"><span class="editable">11</span></span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // System Variables
+    let activeElement = null;
+    let isMoveMode = false;
+    let isDragging = false;
+    let currentX = 0, currentY = 0;
+    let initialX = 0, initialY = 0;
+    let xOffset = 0, yOffset = 0;
+
+    // UI Elements
+    const toolbar = document.getElementById('editor-toolbar');
+    const btnSizeUp = document.getElementById('btn-size-up');
+    const btnSizeDown = document.getElementById('btn-size-down');
+    const btnModeMove = document.getElementById('btn-mode-move');
+    const btnDone = document.getElementById('btn-done');
+    const editableElements = document.querySelectorAll('.editable');
+
+    // 1. Triple Click Logic
+    editableElements.forEach(el => {
+        el.addEventListener('click', function(e) {
+            if (e.detail === 3) {
+                activateEditor(this);
+            }
+        });
+    });
+
+    // 2. Open Editor Function
+    function activateEditor(element) {
+        // If another element is open, close it first
+        if (activeElement && activeElement !== element) {
+            closeEditor();
+        }
+
+        activeElement = element;
+        toolbar.classList.remove('hidden');
+        
+        // Read existing positioning offsets so it doesn't snap back to zero
+        xOffset = parseFloat(activeElement.getAttribute('data-x')) || 0;
+        yOffset = parseFloat(activeElement.getAttribute('data-y')) || 0;
+
+        // Default to typing mode
+        setTypingMode();
+    }
+
+    // 3. Close Editor Function
+    function closeEditor() {
+        if (!activeElement) return;
+        
+        // Clean up text (removes accidental HTML line breaks pasted in)
+        if(activeElement.getAttribute('contenteditable') === 'true') {
+            activeElement.innerHTML = activeElement.innerText;
+        }
+
+        activeElement.setAttribute('contenteditable', 'false');
+        activeElement.classList.remove('is-active', 'is-moving');
+        toolbar.classList.add('hidden');
+        
+        activeElement = null;
+        isMoveMode = false;
+        btnModeMove.classList.remove('bg-blue-600');
+        btnModeMove.classList.add('bg-gray-800');
+    }
+
+    // 4. Mode Toggles (Typing vs Dragging)
+    function setTypingMode() {
+        if (!activeElement) return;
+        isMoveMode = false;
+        
+        activeElement.classList.remove('is-moving');
+        activeElement.classList.add('is-active');
+        activeElement.setAttribute('contenteditable', 'true');
+        activeElement.focus();
+        
+        // Highlight text automatically
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(activeElement);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        btnModeMove.classList.remove('bg-blue-600');
+        btnModeMove.classList.add('bg-gray-800');
+    }
+
+    function setMoveMode() {
+        if (!activeElement) return;
+        isMoveMode = true;
+        
+        activeElement.setAttribute('contenteditable', 'false');
+        activeElement.classList.remove('is-active');
+        activeElement.classList.add('is-moving');
+        
+        // Clear text highlight
+        window.getSelection().removeAllRanges();
+
+        btnModeMove.classList.add('bg-blue-600');
+        btnModeMove.classList.remove('bg-gray-800');
+    }
+
+    // 5. Toolbar Button Listeners
+    btnDone.addEventListener('click', closeEditor);
+
+    btnModeMove.addEventListener('click', () => {
+        if (isMoveMode) {
+            setTypingMode(); // Toggle back to typing
+        } else {
+            setMoveMode();   // Switch to moving
+        }
+    });
+
+    btnSizeUp.addEventListener('click', () => {
+        if (!activeElement) return;
+        let currentSize = parseFloat(window.getComputedStyle(activeElement).fontSize);
+        activeElement.style.fontSize = (currentSize + 1) + 'px';
+    });
+
+    btnSizeDown.addEventListener('click', () => {
+        if (!activeElement) return;
+        let currentSize = parseFloat(window.getComputedStyle(activeElement).fontSize);
+        activeElement.style.fontSize = (currentSize - 1) + 'px';
+    });
+
+    // 6. Drag and Drop Repositioning Logic
+    function dragStart(e) {
+        if (!isMoveMode || !activeElement || e.target !== activeElement) return;
+        
+        if (e.type === "touchstart") {
+            initialX = e.touches[0].clientX - xOffset;
+            initialY = e.touches[0].clientY - yOffset;
+        } else {
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+        }
+        isDragging = true;
+    }
+
+    function drag(e) {
+        if (!isDragging || !isMoveMode || !activeElement) return;
+        e.preventDefault(); // Prevents page scrolling on mobile while dragging
+
+        if (e.type === "touchmove") {
+            currentX = e.touches[0].clientX - initialX;
+            currentY = e.touches[0].clientY - initialY;
+        } else {
+            currentX = e.clientX - initialX;
+            currentY = e.clientY - initialY;
+        }
+
+        xOffset = currentX;
+        yOffset = currentY;
+
+        setTranslate(currentX, currentY, activeElement);
+    }
+
+    function dragEnd() {
+        if(!isDragging) return;
+        initialX = currentX;
+        initialY = currentY;
+        isDragging = false;
+        
+        // Save the coordinates to the element so it remembers where it is
+        activeElement.setAttribute('data-x', currentX);
+        activeElement.setAttribute('data-y', currentY);
+    }
+
+    function setTranslate(xPos, yPos, el) {
+        el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+    }
+
+    // Attach drag events to the whole document to prevent cursor-slip issues
+    document.addEventListener('touchstart', dragStart, {passive: false});
+    document.addEventListener('touchmove', drag, {passive: false});
+    document.addEventListener('touchend', dragEnd);
+    
+    document.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', dragEnd);
+
+    // Enter key to save while typing
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && activeElement && !isMoveMode) {
+            e.preventDefault(); 
+            closeEditor();
+        }
+    });
+
+</script>
+</body>
+</html>

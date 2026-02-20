@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editable Video Ticket</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            /* iOS System Fonts */
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 390px;
+            height: 100vh;
+            max-height: 844px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            background: #000;
+        }
+
+        /* The clean video looping in the background */
+        .background-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+        }
+
+        /* Container for our new editable text */
+        .overlay-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            pointer-events: none; /* Allows scrolling and clicking on the video if needed */
+        }
+
+        /* Editing states */
+        .editable {
+            pointer-events: auto; /* Re-enables clicking only for the text elements */
+            transition: background 0.2s, border-radius 0.2s;
+            cursor: default;
+            color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3); /* Slight shadow to ensure readability */
+        }
+        
+        .editable[contenteditable="true"] {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            padding: 2px 4px;
+            margin: -2px -4px;
+            outline: none;
+            cursor: text;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <video class="background-video" src="new.mov" autoplay loop muted playsinline></video>
+
+    <div class="overlay-content">
+        <div class="flex items-center pt-[55px] pb-[10px] px-4 relative">
+            <svg class="w-5 h-5 absolute left-4 text-white opacity-90 pointer-events-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 19l-7-7 7-7"/>
+            </svg>
+            <div class="flex-1 text-center text-[13px] font-semibold text-[rgba(255,255,255,0.95)] editable tracking-wide">
+                Sat, Nov 8, 12pm - Madison Square Garden
+            </div>
+        </div>
+
+        <div class="text-center mt-[45px] mb-[30px]">
+            <span class="text-[22px] font-bold tracking-wide editable inline-block">Adult</span>
+        </div>
+
+        <div class="flex justify-center items-end space-x-[50px] px-6">
+            <div class="flex flex-col items-center">
+                <span class="text-[13px] text-[#e0dce6] mb-[2px] editable font-medium">Section</span>
+                <span class="text-[28px] font-bold editable tracking-tight">GA2</span>
+            </div>
+            <div class="flex flex-col items-center">
+                <span class="text-[13px] text-[#e0dce6] mb-[2px] editable font-medium">Row</span>
+                <span class="text-[28px] font-bold editable tracking-tight">GA6</span>
+            </div>
+            <div class="flex flex-col items-center">
+                <span class="text-[13px] text-[#e0dce6] mb-[2px] editable font-medium">Seat</span>
+                <span class="text-[28px] font-bold editable tracking-tight">11</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const editableElements = document.querySelectorAll('.editable');
+
+    editableElements.forEach(el => {
+        el.addEventListener('click', function(e) {
+            if (e.detail === 3) { // Triple-click listener
+                this.setAttribute('contenteditable', 'true');
+                this.focus();
+                
+                // Highlights text automatically for easy replacement
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(this);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        });
+
+        // Click outside to save
+        el.addEventListener('blur', function() {
+            this.setAttribute('contenteditable', 'false');
+            // Re-apply innerText to strip out any unwanted HTML/linebreaks generated while typing
+            this.innerHTML = this.innerText; 
+        });
+
+        // Press 'Enter' to save
+        el.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); 
+                this.blur();        
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
