@@ -109,33 +109,28 @@
     <div class="overlay-content">
         
         <div class="flex items-center pt-[60px] px-4 relative">
-            <svg class="w-6 h-6 absolute left-4 text-white opacity-80 pointer-events-auto stroke-[1.5px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-            
             <div class="ml-10 flex flex-col justify-center text-left">
                 <span class="editable text-[16px] font-semibold text-white tracking-wide leading-tight mb-[2px]">St. John's vs. Alabama</span>
                 <span class="editable text-[12px] font-medium text-[#c0c0c0] tracking-wide leading-tight">Sat, Nov 8, 12pm - Madison Square Garden</span>
             </div>
         </div>
 
-        <div class="text-center mt-[45px] mb-[25px]">
-            <span class="text-[17px] font-semibold tracking-wide editable">Adult</span>
+        <div class="text-center mt-[65px] mb-[25px]">
+            <span class="text-[17px] font-medium tracking-wide editable">Adult</span>
         </div>
 
         <div class="flex justify-center items-end space-x-[45px] px-6">
             <div class="flex flex-col items-center">
-                <span class="text-[11px] text-[#c0c0c0] mb-[4px] font-medium"><span class="editable">Section</span></span>
-                <span class="text-[22px] font-semibold tracking-tight"><span class="editable">GA2</span></span>
+                <span class="text-[11px] text-[#c0c0c0] mb-[4px] font-normal"><span class="editable">Section</span></span>
+                <span class="text-[22px] font-medium tracking-tight"><span class="editable">GA2</span></span>
             </div>
             <div class="flex flex-col items-center">
-                <span class="text-[11px] text-[#c0c0c0] mb-[4px] font-medium"><span class="editable">Row</span></span>
-                <span class="text-[22px] font-semibold tracking-tight"><span class="editable">GA6</span></span>
+                <span class="text-[11px] text-[#c0c0c0] mb-[4px] font-normal"><span class="editable">Row</span></span>
+                <span class="text-[22px] font-medium tracking-tight"><span class="editable">GA6</span></span>
             </div>
             <div class="flex flex-col items-center">
-                <span class="text-[11px] text-[#c0c0c0] mb-[4px] font-medium"><span class="editable">Seat</span></span>
-                <span class="text-[22px] font-semibold tracking-tight"><span class="editable">11</span></span>
+                <span class="text-[11px] text-[#c0c0c0] mb-[4px] font-normal"><span class="editable">Seat</span></span>
+                <span class="text-[22px] font-medium tracking-tight"><span class="editable">11</span></span>
             </div>
         </div>
     </div>
@@ -146,6 +141,7 @@
     let activeElement = null;
     let isMoveMode = false;
     let isDragging = false;
+    let isEditing = false; // New variable to lock zoom
     let currentX = 0, currentY = 0;
     let initialX = 0, initialY = 0;
     let xOffset = 0, yOffset = 0;
@@ -172,8 +168,11 @@
     document.addEventListener('touchstart', function(e) {
         if (e.touches.length >= 2) {
             e.preventDefault(); 
-            initialPinchDistance = getPinchDistance(e.touches);
-            baseVideoScale = currentVideoScale;
+            // LOCK: Only allow starting a pinch if the editor is open
+            if (isEditing) {
+                initialPinchDistance = getPinchDistance(e.touches);
+                baseVideoScale = currentVideoScale;
+            }
         } else {
             if (!isMoveMode || !activeElement || e.target !== activeElement) return;
             initialX = e.touches[0].clientX - xOffset;
@@ -183,11 +182,14 @@
     }, { passive: false });
 
     document.addEventListener('touchmove', function(e) {
-        if (e.touches.length >= 2 && initialPinchDistance) {
+        if (e.touches.length >= 2) {
             e.preventDefault(); 
-            const currentDistance = getPinchDistance(e.touches);
-            currentVideoScale = baseVideoScale * (currentDistance / initialPinchDistance);
-            bgVideo.style.transform = `scale(${currentVideoScale})`;
+            // LOCK: Only process pinch movements if editor is open
+            if (isEditing && initialPinchDistance) {
+                const currentDistance = getPinchDistance(e.touches);
+                currentVideoScale = baseVideoScale * (currentDistance / initialPinchDistance);
+                bgVideo.style.transform = `scale(${currentVideoScale})`;
+            }
         } else if (isDragging && isMoveMode && activeElement && e.touches.length === 1) {
             e.preventDefault(); 
             currentX = e.touches[0].clientX - initialX;
@@ -226,9 +228,11 @@
             
             tapCount++;
             if (tapCount === 1) {
-                tapTimer = setTimeout(() => { tapCount = 0; }, 500); 
+                // Expanded timer slightly to 1 full second so 5 taps is easy to accomplish
+                tapTimer = setTimeout(() => { tapCount = 0; }, 1000); 
             }
-            if (tapCount === 3) {
+            // CHANGED: Now requires 5 taps to trigger the editor
+            if (tapCount === 5) {
                 clearTimeout(tapTimer);
                 tapCount = 0;
                 e.preventDefault(); 
@@ -241,6 +245,7 @@
         if (activeElement && activeElement !== element) closeEditor();
 
         activeElement = element;
+        isEditing = true; // Unlock zoom
         toolbar.classList.remove('hidden');
         
         xOffset = parseFloat(activeElement.getAttribute('data-x')) || 0;
@@ -262,6 +267,7 @@
         
         activeElement = null;
         isMoveMode = false;
+        isEditing = false; // Relock zoom
         btnModeMove.classList.remove('bg-blue-600');
         btnModeMove.classList.add('bg-gray-800');
     }
