@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
     <meta name="theme-color" content="#1B2126">
-    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Tickets">
@@ -38,8 +36,7 @@
 
         .background-video {
             position: absolute;
-            /* Changed from 42px to 50px */
-            top: 35px; 
+            top: 50px; 
             left: 0;
             width: 100%;
             height: 100%;
@@ -110,31 +107,35 @@
     </div>
 
     <div class="overlay-content">
-        <div class="flex items-center pt-[70px] pb-[10px] px-4 relative">
-            <svg class="w-5 h-5 absolute left-4 text-white opacity-90 pointer-events-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M15 19l-7-7 7-7"/>
+        
+        <div class="flex items-center pt-[60px] px-4 relative">
+            <svg class="w-6 h-6 absolute left-4 text-white opacity-80 pointer-events-auto stroke-[1.5px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
-            <div class="flex-1 text-center font-semibold text-[rgba(255,255,255,0.95)] tracking-wide flex justify-center">
-                <span class="editable text-[13px]">Sat, Nov 8, 12pm - Madison Square Garden</span>
+            
+            <div class="ml-10 flex flex-col justify-center text-left">
+                <span class="editable text-[16px] font-semibold text-white tracking-wide leading-tight mb-[2px]">St. John's vs. Alabama</span>
+                <span class="editable text-[12px] font-medium text-[#c0c0c0] tracking-wide leading-tight">Sat, Nov 8, 12pm - Madison Square Garden</span>
             </div>
         </div>
 
-        <div class="text-center mt-[45px] mb-[30px]">
-            <span class="text-[22px] font-bold tracking-wide editable">Adult</span>
+        <div class="text-center mt-[45px] mb-[25px]">
+            <span class="text-[17px] font-semibold tracking-wide editable">Adult</span>
         </div>
 
-        <div class="flex justify-center items-end space-x-[50px] px-6">
+        <div class="flex justify-center items-end space-x-[45px] px-6">
             <div class="flex flex-col items-center">
-                <span class="text-[13px] text-[#e0dce6] mb-[2px] font-medium"><span class="editable">Section</span></span>
-                <span class="text-[28px] font-bold tracking-tight"><span class="editable">GA2</span></span>
+                <span class="text-[11px] text-[#c0c0c0] mb-[4px] font-medium"><span class="editable">Section</span></span>
+                <span class="text-[22px] font-semibold tracking-tight"><span class="editable">GA2</span></span>
             </div>
             <div class="flex flex-col items-center">
-                <span class="text-[13px] text-[#e0dce6] mb-[2px] font-medium"><span class="editable">Row</span></span>
-                <span class="text-[28px] font-bold tracking-tight"><span class="editable">GA6</span></span>
+                <span class="text-[11px] text-[#c0c0c0] mb-[4px] font-medium"><span class="editable">Row</span></span>
+                <span class="text-[22px] font-semibold tracking-tight"><span class="editable">GA6</span></span>
             </div>
             <div class="flex flex-col items-center">
-                <span class="text-[13px] text-[#e0dce6] mb-[2px] font-medium"><span class="editable">Seat</span></span>
-                <span class="text-[28px] font-bold tracking-tight"><span class="editable">11</span></span>
+                <span class="text-[11px] text-[#c0c0c0] mb-[4px] font-medium"><span class="editable">Seat</span></span>
+                <span class="text-[22px] font-semibold tracking-tight"><span class="editable">11</span></span>
             </div>
         </div>
     </div>
