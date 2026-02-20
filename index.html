@@ -23,12 +23,13 @@
             overflow: hidden;
             -webkit-user-select: none;
             user-select: none; 
+            /* Extra safeguards against mobile browser quirks */
+            touch-action: none;
         }
 
         .app-container {
             width: 100%;
             height: 100vh;
-            /* Removes the strict max-width constraint to let it fill the true phone screen */
             position: relative;
             overflow: hidden;
             background: #000;
@@ -42,7 +43,7 @@
             height: 100%;
             object-fit: cover;
             z-index: 0;
-            transition: transform 0.2s ease-out; /* Smooth zooming */
+            transition: transform 0.2s ease-out;
             transform-origin: center center;
         }
 
@@ -92,7 +93,7 @@
     
     <video id="bg-video" class="background-video" src="new.mp4" autoplay loop muted playsinline></video>
 
-    <div id="editor-toolbar" class="hidden absolute top-14 left-1/2 transform -translate-x-1/2 bg-[rgba(30,30,30,0.95)] backdrop-blur-xl text-white px-2 py-2 rounded-xl flex items-center space-x-2 z-50 border border-gray-700 shadow-2xl pointer-events-auto w-max max-w-[95vw] overflow-x-auto">
+    <div id="editor-toolbar" class="hidden absolute bottom-12 left-1/2 transform -translate-x-1/2 bg-[rgba(30,30,30,0.95)] backdrop-blur-xl text-white px-2 py-2 rounded-xl flex items-center space-x-2 z-50 border border-gray-700 shadow-2xl pointer-events-auto w-max max-w-[95vw] overflow-x-auto">
         
         <div class="flex space-x-1">
             <button id="btn-size-down" class="px-2 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 active:bg-gray-600 font-bold text-sm transition-colors">A-</button>
@@ -151,7 +152,20 @@
 </div>
 
 <script>
-    // System Variables
+    // --- NEW: STRICT APPLE ZOOM LOCKS ---
+    // This stops Apple Safari from zooming the page when you pinch your fingers
+    document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+    document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
+    document.addEventListener('gestureend', function(e) { e.preventDefault(); });
+    
+    // This stops double-finger taps from zooming
+    document.addEventListener('touchstart', function(e) {
+        if (e.touches.length > 1) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+    // ------------------------------------
+
     let activeElement = null;
     let isMoveMode = false;
     let isDragging = false;
@@ -159,14 +173,11 @@
     let initialX = 0, initialY = 0;
     let xOffset = 0, yOffset = 0;
 
-    // Mobile Custom Tap Counter
     let tapCount = 0;
     let tapTimer;
 
-    // Video Zoom Variable
     let currentVideoScale = 1.0;
 
-    // UI Elements
     const bgVideo = document.getElementById('bg-video');
     const toolbar = document.getElementById('editor-toolbar');
     const btnSizeUp = document.getElementById('btn-size-up');
@@ -177,7 +188,6 @@
     const btnDone = document.getElementById('btn-done');
     const editableElements = document.querySelectorAll('.editable');
 
-    // 1. Mobile-Friendly Triple Tap Logic
     editableElements.forEach(el => {
         el.addEventListener('pointerdown', function(e) {
             tapCount++;
@@ -197,7 +207,6 @@
         });
     });
 
-    // 2. Open Editor Function
     function activateEditor(element) {
         if (activeElement && activeElement !== element) closeEditor();
 
@@ -210,7 +219,6 @@
         setTypingMode();
     }
 
-    // 3. Close Editor Function
     function closeEditor() {
         if (!activeElement) return;
         
@@ -228,7 +236,6 @@
         btnModeMove.classList.add('bg-gray-800');
     }
 
-    // 4. Mode Toggles 
     function setTypingMode() {
         if (!activeElement) return;
         isMoveMode = false;
@@ -262,14 +269,12 @@
         btnModeMove.classList.remove('bg-gray-800');
     }
 
-    // 5. Toolbar Listeners
     btnDone.addEventListener('click', closeEditor);
 
     btnModeMove.addEventListener('click', () => {
         isMoveMode ? setTypingMode() : setMoveMode();
     });
 
-    // Text Resizing
     btnSizeUp.addEventListener('click', () => {
         if (!activeElement) return;
         let currentSize = parseFloat(window.getComputedStyle(activeElement).fontSize);
@@ -282,19 +287,16 @@
         activeElement.style.fontSize = (currentSize - 1) + 'px';
     });
 
-    // Video Zooming
     btnVidUp.addEventListener('click', () => {
-        currentVideoScale += 0.05; // Zooms in 5% per click
+        currentVideoScale += 0.05; 
         bgVideo.style.transform = `scale(${currentVideoScale})`;
     });
 
     btnVidDown.addEventListener('click', () => {
-        // Prevents video from getting smaller than 100% of the screen
         currentVideoScale = Math.max(1.0, currentVideoScale - 0.05); 
         bgVideo.style.transform = `scale(${currentVideoScale})`;
     });
 
-    // 6. Mobile/Desktop Dragging Logic
     function dragStart(e) {
         if (!isMoveMode || !activeElement || e.target !== activeElement) return;
         
