@@ -8,6 +8,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Tickets">
     
+    <link rel="apple-touch-icon" href="icon.png">
+    
     <title>Advanced Editable Ticket</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -141,7 +143,7 @@
     let activeElement = null;
     let isMoveMode = false;
     let isDragging = false;
-    let isEditing = false; // New variable to lock zoom
+    let isEditing = false; 
     let currentX = 0, currentY = 0;
     let initialX = 0, initialY = 0;
     let xOffset = 0, yOffset = 0;
@@ -168,7 +170,6 @@
     document.addEventListener('touchstart', function(e) {
         if (e.touches.length >= 2) {
             e.preventDefault(); 
-            // LOCK: Only allow starting a pinch if the editor is open
             if (isEditing) {
                 initialPinchDistance = getPinchDistance(e.touches);
                 baseVideoScale = currentVideoScale;
@@ -184,7 +185,6 @@
     document.addEventListener('touchmove', function(e) {
         if (e.touches.length >= 2) {
             e.preventDefault(); 
-            // LOCK: Only process pinch movements if editor is open
             if (isEditing && initialPinchDistance) {
                 const currentDistance = getPinchDistance(e.touches);
                 currentVideoScale = baseVideoScale * (currentDistance / initialPinchDistance);
@@ -228,10 +228,8 @@
             
             tapCount++;
             if (tapCount === 1) {
-                // Expanded timer slightly to 1 full second so 5 taps is easy to accomplish
                 tapTimer = setTimeout(() => { tapCount = 0; }, 1000); 
             }
-            // CHANGED: Now requires 5 taps to trigger the editor
             if (tapCount === 5) {
                 clearTimeout(tapTimer);
                 tapCount = 0;
@@ -245,7 +243,7 @@
         if (activeElement && activeElement !== element) closeEditor();
 
         activeElement = element;
-        isEditing = true; // Unlock zoom
+        isEditing = true; 
         toolbar.classList.remove('hidden');
         
         xOffset = parseFloat(activeElement.getAttribute('data-x')) || 0;
@@ -267,7 +265,7 @@
         
         activeElement = null;
         isMoveMode = false;
-        isEditing = false; // Relock zoom
+        isEditing = false; 
         btnModeMove.classList.remove('bg-blue-600');
         btnModeMove.classList.add('bg-gray-800');
     }
