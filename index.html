@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <meta name="theme-color" content="#1b1725">
+    <meta name="theme-color" content="#1a1a1c">
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,7 +15,8 @@
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #1b1725;
+            /* Changed to dark gray */
+            background-color: #1a1a1c;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -33,18 +34,19 @@
             height: 100vh;
             position: relative;
             overflow: hidden;
-            background: #1b1725;
+            /* Changed to dark gray */
+            background: #1a1a1c;
         }
 
         .background-video {
             position: absolute;
-            top: 85px; 
+            /* Cut exactly in half from 85px to 42px */
+            top: 42px; 
             left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
             z-index: 0;
-            /* Removed transition so pinch-to-zoom perfectly tracks the fingers instantly */
             transform-origin: top center; 
         }
 
@@ -153,13 +155,12 @@
     let tapCount = 0;
     let tapTimer;
 
-    // --- NEW: Custom Pinch-to-Zoom Variables ---
+    // Custom Pinch-to-Zoom Variables
     let currentVideoScale = 1.0;
     let initialPinchDistance = null;
     let baseVideoScale = 1.0;
     const bgVideo = document.getElementById('bg-video');
 
-    // Helper function to calculate distance between two fingers
     function getPinchDistance(touches) {
         return Math.hypot(
             touches[0].clientX - touches[1].clientX,
@@ -167,19 +168,16 @@
         );
     }
 
-    // Prevents native Apple iOS zoom gestures entirely
     document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
     document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
     document.addEventListener('gestureend', function(e) { e.preventDefault(); });
 
-    // Custom Touch Start (Handles both Dragging and Pinch Zooming)
     document.addEventListener('touchstart', function(e) {
         if (e.touches.length >= 2) {
             e.preventDefault(); 
             initialPinchDistance = getPinchDistance(e.touches);
             baseVideoScale = currentVideoScale;
         } else {
-            // Single touch for dragging text
             if (!isMoveMode || !activeElement || e.target !== activeElement) return;
             initialX = e.touches[0].clientX - xOffset;
             initialY = e.touches[0].clientY - yOffset;
@@ -187,12 +185,10 @@
         }
     }, { passive: false });
 
-    // Custom Touch Move 
     document.addEventListener('touchmove', function(e) {
         if (e.touches.length >= 2 && initialPinchDistance) {
             e.preventDefault(); 
             const currentDistance = getPinchDistance(e.touches);
-            // Calculate how far fingers have spread/pinched and apply to the video
             currentVideoScale = baseVideoScale * (currentDistance / initialPinchDistance);
             bgVideo.style.transform = `scale(${currentVideoScale})`;
         } else if (isDragging && isMoveMode && activeElement && e.touches.length === 1) {
@@ -205,7 +201,6 @@
         }
     }, { passive: false });
 
-    // Custom Touch End
     document.addEventListener('touchend', function(e) {
         if (e.touches.length < 2) {
             initialPinchDistance = null;
@@ -220,7 +215,6 @@
             }
         }
     });
-    // -------------------------------------------
 
     const toolbar = document.getElementById('editor-toolbar');
     const btnSizeUp = document.getElementById('btn-size-up');
@@ -229,10 +223,8 @@
     const btnDone = document.getElementById('btn-done');
     const editableElements = document.querySelectorAll('.editable');
 
-    // Triple Tap Logic
     editableElements.forEach(el => {
         el.addEventListener('pointerdown', function(e) {
-            // Ignore if pinching
             if (e.touches && e.touches.length > 1) return;
             
             tapCount++;
@@ -328,7 +320,6 @@
         activeElement.style.fontSize = (currentSize - 1) + 'px';
     });
 
-    // Desktop Mouse Dragging Fallbacks
     document.addEventListener('mousedown', function(e) {
         if (!isMoveMode || !activeElement || e.target !== activeElement) return;
         initialX = e.clientX - xOffset;
